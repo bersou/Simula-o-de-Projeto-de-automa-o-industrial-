@@ -23,8 +23,7 @@ Este projeto foi construído utilizando tecnologias web padrões e de código ab
 💻 Como Executar o Projeto
 Existem duas maneiras simples de executar esta simulação:
 1. Via GitHub Pages (Recomendado)
-O projeto está hospedado e pode ser acessado diretamente pelo link:
-https://seu-usuario.github.io/seu-repositorio/ (Substitua com o link do seu GitHub Pages)
+O projeto está hospedado e pode ser acessado diretamente pelo link:https://bersou.github.io/Simula-o-de-Projeto-de-automa-o-industrial-/)
 2. Localmente
 Basta baixar o arquivo index.html deste repositório e abri-lo em qualquer navegador web moderno (Google Chrome, Firefox, Microsoft Edge, etc.). Nenhuma dependência externa precisa ser instalada.
 # Clone este repositório (opcional)
