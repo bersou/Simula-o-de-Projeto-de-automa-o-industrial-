@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação de Automação Industrial</title>
+    <!-- Tailwind CSS para estilo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilos personalizados para um visual mais limpo */
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button.active {
+            border-color: #3B82F6;
+            color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        /* Animação para o status de falha */
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
+        .blinking {
+            animation: blink 1s linear infinite;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Simulação de Projeto de Automação</h1>
+            <p class="text-gray-500">Uma visão integrada do Chão de Fábrica à Gerência</p>
+        </div>
+
+        <!-- Abas de Navegação -->
+        <div class="mb-6 bg-white p-2 rounded-lg shadow-sm flex space-x-2">
+            <button id="tab-supervisorio" class="tab-button flex-1 py-2 px-4 rounded-md font-semibold text-gray-600 border-2 border-transparent transition-colors duration-300">
+                <i class="fas fa-desktop mr-2"></i> Supervisório (Operador)
+            </button>
+            <button id="tab-dashboard" class="tab-button flex-1 py-2 px-4 rounded-md font-semibold text-gray-600 border-2 border-transparent transition-colors duration-300">
+                <i class="fas fa-chart-pie mr-2"></i> Dashboard (Gerência)
+            </button>
+            <button id="tab-backend" class="tab-button flex-1 py-2 px-4 rounded-md font-semibold text-gray-600 border-2 border-transparent transition-colors duration-300">
+                <i class="fas fa-cogs mr-2"></i> Bastidores (CLP & BD)
+            </button>
+        </div>
+
+        <!-- Conteúdo das Abas -->
+        <main>
+            <!-- 1. TELA DO SUPERVISÓRIO -->
+            <div id="content-supervisorio" class="content-section active">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Painel de Controle e Status -->
+                    <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4">Prensa Hidráulica PH-01</h2>
+                        <div id="machine-visual" class="relative w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center mb-4">
+                            <i id="machine-icon" class="fas fa-cogs fa-6x text-gray-400 transition-all duration-500"></i>
+                            <div id="status-overlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg text-white text-2xl font-bold">
+                                <span id="status-text">PARADA</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <button id="btn-ligar" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors"><i class="fas fa-play mr-2"></i> Ligar Máquina</button>
+                            <button id="btn-desligar" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg transition-colors"><i class="fas fa-stop mr-2"></i> Desligar Máquina</button>
+                            <button id="btn-reset" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg transition-colors hidden"><i class="fas fa-sync-alt mr-2"></i> Resetar Falha</button>
+                        </div>
+                    </div>
+                    <!-- Painel de Leituras em Tempo Real -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm font-semibold text-blue-800">Temperatura</p>
+                            <p id="temp-display" class="text-4xl font-bold text-blue-600">25.0 °C</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <p class="text-sm font-semibold text-purple-800">Pressão</p>
+                            <p id="press-display" class="text-4xl font-bold text-purple-600">0 bar</p>
+                        </div>
+                        <div class="bg-teal-50 p-4 rounded-lg">
+                            <p class="text-sm font-semibold text-teal-800">Vibração</p>
+                            <p id="vibr-display" class="text-4xl font-bold text-teal-600">0.1 mm/s</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TELA DO DASHBOARD GERENCIAL -->
+            <div id="content-dashboard" class="content-section">
+                <div class="space-y-6">
+                    <!-- KPIs -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                            <p class="text-lg font-semibold text-gray-600">Produção (Hoje)</p>
+                            <p id="kpi-producao" class="text-5xl font-bold text-gray-800">0</p>
+                            <p class="text-sm text-gray-400">peças</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                            <p class="text-lg font-semibold text-gray-600">Tempo de Operação</p>
+                            <p id="kpi-optime" class="text-5xl font-bold text-gray-800">0s</p>
+                             <p class="text-sm text-gray-400">segundos</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                            <p class="text-lg font-semibold text-gray-600">OEE (Simulado)</p>
+                            <p id="kpi-oee" class="text-5xl font-bold text-green-600">92%</p>
+                             <p class="text-sm text-gray-400">Overall Equipment Effectiveness</p>
+                        </div>
+                    </div>
+                    <!-- Gráficos -->
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4">Histórico de Temperatura (°C)</h2>
+                        <div class="h-64"><canvas id="tempChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. TELA DOS BASTIDORES -->
+            <div id="content-backend" class="content-section">
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4"><i class="fas fa-memory mr-2"></i> Memória do CLP (Tags)</h2>
+                        <pre id="clp-memory" class="bg-gray-800 text-green-400 p-4 rounded-lg font-mono text-sm h-80 overflow-y-auto"></pre>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4"><i class="fas fa-database mr-2"></i> Log do Banco de Dados</h2>
+                        <div class="font-mono text-sm h-80 overflow-y-auto border rounded-lg">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="p-2 text-left">Timestamp</th>
+                                        <th class="p-2 text-left">Sensor</th>
+                                        <th class="p-2 text-right">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="db-log">
+                                    <!-- Logs serão inseridos aqui -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // --- ESTADO INICIAL DA SIMULAÇÃO ---
+    let systemState = {
+        machine: {
+            status: 'parada', // 'operando', 'parada', 'falha'
+            temperature: 25.0,
+            pressure: 0.0,
+            vibration: 0.1,
+            productionCount: 0,
+            operationTime: 0, // em segundos
+        },
+        history: {
+            temperature: [],
+        },
+        config: {
+            tempMax: 85.0,
+            pressureMax: 150.0,
+            productionCycleMs: 3000, // produz 1 peça a cada 3s
+            lastProductionTime: 0,
+        }
+    };
+
+    // --- ELEMENTOS DA UI ---
+    const elements = {
+        tabs: document.querySelectorAll('.tab-button'),
+        contents: document.querySelectorAll('.content-section'),
+        
+        // Supervisório
+        machineIcon: document.getElementById('machine-icon'),
+        statusOverlay: document.getElementById('status-overlay'),
+        statusText: document.getElementById('status-text'),
+        btnLigar: document.getElementById('btn-ligar'),
+        btnDesligar: document.getElementById('btn-desligar'),
+        btnReset: document.getElementById('btn-reset'),
+        tempDisplay: document.getElementById('temp-display'),
+        pressDisplay: document.getElementById('press-display'),
+        vibrDisplay: document.getElementById('vibr-display'),
+
+        // Dashboard
+        kpiProducao: document.getElementById('kpi-producao'),
+        kpiOptime: document.getElementById('kpi-optime'),
+        kpiOee: document.getElementById('kpi-oee'),
+
+        // Backend
+        clpMemory: document.getElementById('clp-memory'),
+        dbLog: document.getElementById('db-log'),
+    };
+
+    // --- GRÁFICOS (CHART.JS) ---
+    const tempChartCtx = document.getElementById('tempChart').getContext('2d');
+    const tempChart = new Chart(tempChartCtx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Temperatura',
+                data: [],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'second' }
+                },
+                y: { beginAtZero: false }
+            }
+        }
+    });
+
+    // --- LÓGICA DA SIMULAÇÃO (O "CÉREBRO") ---
+    function runSimulation() {
+        const now = Date.now();
+        const state = systemState.machine;
+
+        if (state.status === 'operando') {
+            state.operationTime++;
+            // Simula aumento de temperatura e pressão
+            state.temperature += Math.random() * 1.5;
+            state.pressure = Math.min(state.pressure + Math.random() * 10, systemState.config.pressureMax);
+            state.vibration = 2 + Math.random() * 1.5;
+            
+            // Simula produção
+            if (now - systemState.config.lastProductionTime > systemState.config.productionCycleMs) {
+                state.productionCount++;
+                systemState.config.lastProductionTime = now;
+            }
+
+            // Simula falha por sobreaquecimento
+            if (state.temperature > systemState.config.tempMax) {
+                state.status = 'falha';
+            }
+
+        } else { // Parada ou Falha
+            // Simula resfriamento
+            if(state.temperature > 25) state.temperature -= Math.random() * 2;
+            else state.temperature = 25;
+            
+            state.pressure = Math.max(0, state.pressure - Math.random() * 20);
+            state.vibration = Math.max(0.1, state.vibration - 0.2);
+        }
+
+        // Adiciona dados ao histórico para o gráfico
+        systemState.history.temperature.push({ x: now, y: state.temperature.toFixed(1) });
+        if (systemState.history.temperature.length > 50) {
+            systemState.history.temperature.shift();
+        }
+
+        updateUI();
+    }
+
+    // --- FUNÇÕES DE ATUALIZAÇÃO DA INTERFACE (UI) ---
+    function updateUI() {
+        const state = systemState.machine;
+
+        // Atualiza Supervisório
+        elements.tempDisplay.textContent = `${state.temperature.toFixed(1)} °C`;
+        elements.pressDisplay.textContent = `${state.pressure.toFixed(0)} bar`;
+        elements.vibrDisplay.textContent = `${state.vibration.toFixed(1)} mm/s`;
+
+        switch(state.status) {
+            case 'operando':
+                elements.statusText.textContent = 'OPERANDO';
+                elements.statusOverlay.className = 'absolute inset-0 flex items-center justify-center bg-green-600 bg-opacity-70 rounded-lg text-white text-2xl font-bold';
+                elements.machineIcon.classList.add('animate-spin');
+                elements.btnReset.classList.add('hidden');
+                break;
+            case 'parada':
+                elements.statusText.textContent = 'PARADA';
+                elements.statusOverlay.className = 'absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-70 rounded-lg text-white text-2xl font-bold';
+                elements.machineIcon.classList.remove('animate-spin');
+                elements.btnReset.classList.add('hidden');
+                break;
+            case 'falha':
+                elements.statusText.textContent = 'FALHA';
+                elements.statusOverlay.className = 'blinking absolute inset-0 flex items-center justify-center bg-red-600 bg-opacity-70 rounded-lg text-white text-2xl font-bold';
+                elements.machineIcon.classList.remove('animate-spin');
+                elements.btnReset.classList.remove('hidden');
+                break;
+        }
+
+        // Atualiza Dashboard
+        elements.kpiProducao.textContent = state.productionCount;
+        elements.kpiOptime.textContent = `${state.operationTime}s`;
+        tempChart.data.datasets[0].data = systemState.history.temperature;
+        tempChart.update('quiet');
+
+        // Atualiza Bastidores
+        elements.clpMemory.textContent = JSON.stringify(state, null, 2);
+        
+        // Simula log no DB (apenas o último evento)
+        const logEntry = document.createElement('tr');
+        logEntry.className = 'bg-white even:bg-gray-50';
+        logEntry.innerHTML = `
+            <td class="p-2">${new Date().toLocaleTimeString()}</td>
+            <td class="p-2">Temperatura</td>
+            <td class="p-2 text-right">${state.temperature.toFixed(1)}</td>
+        `;
+        elements.dbLog.prepend(logEntry);
+        if (elements.dbLog.children.length > 20) {
+            elements.dbLog.removeChild(elements.dbLog.lastChild);
+        }
+    }
+
+    // --- CONTROLES E EVENTOS ---
+    
+    // Controle das abas
+    elements.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            elements.tabs.forEach(t => t.classList.remove('active'));
+            elements.contents.forEach(c => c.classList.remove('active'));
+            
+            tab.classList.add('active');
+            const targetId = tab.id.replace('tab-', 'content-');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    // Controles da máquina
+    elements.btnLigar.addEventListener('click', () => {
+        if (systemState.machine.status === 'parada') {
+            systemState.machine.status = 'operando';
+            systemState.config.lastProductionTime = Date.now();
+        }
+    });
+
+    elements.btnDesligar.addEventListener('click', () => {
+        if (systemState.machine.status !== 'falha') {
+            systemState.machine.status = 'parada';
+        }
+    });
+    
+    elements.btnReset.addEventListener('click', () => {
+        if (systemState.machine.status === 'falha') {
+            systemState.machine.status = 'parada';
+            systemState.machine.temperature = 50.0; // Reseta para uma temp segura
+        }
+    });
+
+    // --- INICIALIZAÇÃO ---
+    function initialize() {
+        document.getElementById('tab-supervisorio').click(); // Inicia na primeira aba
+        setInterval(runSimulation, 1000); // Roda a simulação a cada 1 segundo
+        updateUI(); // Chama a primeira atualização
+    }
+
+    initialize();
+    </script>
+</body>
+</html>
+
